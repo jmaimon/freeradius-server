@@ -625,9 +625,14 @@ retry_next_vp:
 			 *	error codes than "comparison is less
 			 *	than, equal to, or greater than zero".
 			 */
-			compare = radius_callback_compare(state->request,
-							  vp, myvp, NULL, NULL);
-			pairfree(&myvp);
+			if (myvp) {
+				compare = radius_compare_vps(state->request,
+							vp, myvp);
+				pairfree(&myvp);
+			}
+			else
+				compare = -1;
+  			
 
 		} else {
 			/*
