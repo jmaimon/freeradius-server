@@ -170,10 +170,9 @@ int radius_compare_vps(REQUEST *request, VALUE_PAIR *check, VALUE_PAIR *vp)
 		compare = regexec(&reg, value,  REQUEST_MAX_REGEX + 1,
 				  rxmatch, 0);
 		regfree(&reg);
-
-		if (compare != 0) return 0;
-		return -1;
-
+		/* !~ only succeeds if NO matches are found in reply pair */
+		if (compare == 0) return -1;
+		ret = -1; /*check the rest for no match */
 	}
 #endif
 
@@ -568,7 +567,12 @@ int paircompare(REQUEST *req, VALUE_PAIR *request, VALUE_PAIR *check, VALUE_PAIR
 			 *	Didn't find it.  If we were *trying*
 			 *	to not find it, then we succeeded.
 			 */
-			if (check_item->operator == T_OP_CMP_FALSE)
+			if (check_item->operator == T_OP_CMP_FALSE ||
+#ifdef HAVE_REGEX_H
+			    check_item->operator == T_OP_REG_NE ||
+#endif
+			    check_item->operator == T_OP_NE 
+			    )
 				continue;
 			else
 				return -1;
