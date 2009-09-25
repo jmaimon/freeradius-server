@@ -519,6 +519,8 @@ static int evaluate_condition(policy_state_t *state, const policy_item_t *item)
 	/*
 	 *	FIXME: Don't always do this...
 	 */
+	if (!this) /* XXX: Not supposed to happen */
+		return 1;
 	if (this->compare != POLICY_LEX_L_BRACKET) {
 		if (this->lhs_type == POLICY_LEX_FUNCTION) {
 			/*
