@@ -1740,7 +1740,9 @@ static int process_proxy_reply(REQUEST *request)
 	/*
 	 *	Delete any reply we had accumulated until now.
 	 */
+	/*
 	pairfree(&request->reply->vps);
+	*/
 	
 	/*
 	 *	Run the packet through the post-proxy stage,
