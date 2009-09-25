@@ -120,7 +120,7 @@ policy authorize {
   #
   #  Execute "3pm", as if it was in-line here.
   #
-#  call 3pm
+  3pm()
 }
 
 ######################################################################
