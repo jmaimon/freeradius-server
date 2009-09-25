@@ -228,6 +228,8 @@
 #define PW_RECV_COA_TYPE   		1131
 #define PW_SEND_COA_TYPE   		1132
 
+#define PW_CLIENT_SHORT_NAME		1910
+#define PW_CLIENT_IPV6_ADDRESS		1911
 /*
  *	Integer Translations
  */

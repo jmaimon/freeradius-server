@@ -419,6 +419,10 @@ static int huntgroup_access(REQUEST *request, PAIR_LIST *huntgroups)
 /*
  *	If the NAS wasn't smart enought to add a NAS-IP-Address
  *	to the request, then add it ourselves.
+ *	
+ *	Note also that this is a server configuration item,
+ *	and will NOT make it to any packets being sent from
+ *	the server.
  */
 static int add_nas_attr(REQUEST *request)
 {
@@ -451,7 +455,83 @@ static int add_nas_attr(REQUEST *request)
 		radlog(L_ERR, "Unknown address family for packet");
 		return -1;
 	}
+	return 0;
+}
 
+/*	
+ *	Note also that these are server configuration items,
+ *	and will NOT make it to any packets being sent from
+ *	the server.
+ */
+
+
+static int add_client_attr(REQUEST *request)
+{
+	VALUE_PAIR *client_attr = NULL;
+	RADCLIENT *client = NULL;
+
+  	/*	Note that this MAY BE different from the NAS-IP-Address,
+  	 *	especially if the request is being proxied.
+  	 *
+  	 */
+	switch (request->packet->src_ipaddr.af) {
+		case AF_INET:
+			client_attr = pairfind(request->packet->vps, PW_CLIENT_IP_ADDRESS);
+			if (!client_attr) {
+				client_attr = paircreate(PW_CLIENT_IP_ADDRESS, PW_TYPE_IPADDR);
+				if (!client_attr) {
+					radlog(L_ERR, "No memory");
+					return 1;
+				}
+				ip_ntoh(&request->packet->src_ipaddr,
+					client_attr->vp_strvalue, sizeof(client_attr->vp_strvalue));
+				client_attr->lvalue = request->packet->src_ipaddr.ipaddr.ip4addr.s_addr;
+				pairadd(&request->packet->vps, client_attr);
+			}
+		break;
+
+	case AF_INET6:
+		client_attr = pairfind(request->packet->vps, PW_CLIENT_IPV6_ADDRESS);
+		if (!client_attr) {
+			client_attr = paircreate(PW_CLIENT_IPV6_ADDRESS, PW_TYPE_IPV6ADDR);
+			if (!client_attr) {
+				radlog(L_ERR, "No memory");
+				return -1;
+			}
+			
+			memcpy(client_attr->vp_strvalue,
+			       &request->packet->src_ipaddr.ipaddr,
+			       sizeof(request->packet->src_ipaddr.ipaddr));
+			pairadd(&request->packet->vps, client_attr);
+		}
+		break;
+
+	default:
+		radlog(L_ERR, "Unknown address family for packet");
+		return -1;
+	}
+
+	/*
+	 * 	Add in a Client-Short-Name, so that we may match on short
+	 * 	name of the client who made the request
+	 */
+	client_attr = NULL;
+	client = client_find_old(&(request->packet->src_ipaddr));
+	if(!client)
+		return 1;
+	
+	client_attr = pairfind(request->packet->vps, PW_CLIENT_SHORT_NAME);
+	if (!client_attr) {
+		client_attr = paircreate(PW_CLIENT_SHORT_NAME, PW_TYPE_STRING);
+		if (!client_attr) {
+			radlog(L_ERR, "No memory");
+			return 1;
+		}
+		
+		strncpy(client_attr->vp_strvalue,client->shortname,sizeof(client_attr->vp_strvalue)-1);
+		client_attr->vp_strvalue[sizeof(client_attr->vp_strvalue)-1] = '\0';
+		pairadd(&request->packet->vps, client_attr);
+	}
 	return 0;
 }
 
@@ -559,6 +639,9 @@ static int preprocess_authorize(void *instance, REQUEST *request)
 	if (add_nas_attr(request) < 0) {
 		return RLM_MODULE_FAIL;
 	}
+	if (add_client_attr(request) < 0) {
+		return RLM_MODULE_FAIL;
+	}
 
 	hints_setup(data->hints, request);
 
@@ -617,6 +700,10 @@ static int preprocess_preaccounting(void *instance, REQUEST *request)
 		 *	people are crazy.
 		 */
 		alvarion_vsa_hack(request->packet->vps);
+	}
+	
+	if (add_client_attr(request) < 0) {
+		return RLM_MODULE_FAIL;
 	}
 
 	/*

@@ -342,6 +342,9 @@ ATTRIBUTE	WiMAX-MN-FA				1902	octets
 #
 #	Range:	1910-2999
 #		Free
+ATTRIBUTE	Client-Short-Name	1910	string	
+ATTRIBUTE	Client-IPV6-Address	1911	ipv6addr
+
 #
 #	Range:	3000-3999
 #		Site-local attributes (see raddb/dictionary.in)
