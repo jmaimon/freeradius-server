@@ -1196,7 +1196,7 @@ static int policy_evaluate_name(policy_state_t *state, const char *name)
 
 	mypolicy.name = name;
 	policy = rbtree_finddata(state->inst->policies, &mypolicy);
-	if (!policy) return RLM_MODULE_FAIL;
+	if (!policy) return RLM_MODULE_OK;
 
 	DEBUG2("rlm_policy: Evaluating policy %s", name);
 
