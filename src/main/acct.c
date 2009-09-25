@@ -122,6 +122,29 @@ int rad_accounting(REQUEST *request)
 		 *	Maybe one of the preacct modules has decided
 		 *	that a proxy should be used.
 		 */
+		
+		if ((vp = pairfind(request->config_items, PW_HOME_SERVER_POOL))) {
+			home_pool_t *home_pool;
+
+			/*
+			 *	Check whether Home-Server-Pool is
+			 *	a LOCAL pool.
+			 */
+			home_pool = home_pool_byname(vp->vp_strvalue, HOME_TYPE_ACCT);
+			if (home_pool && !home_pool->servers) {
+				DEBUG("rad_accounting: Cancelling proxy to home_pool %s, as it is a LOCAL home pool.", 
+					home_pool->name);
+				pairdelete(&request->config_items, PW_HOME_SERVER_POOL);
+			} else {
+				/*
+				 *	Don't reply to the NAS now because
+				 *	we have to send the proxied packet
+				 *	before that.
+				 */
+				return result;
+			}
+		}
+
 		if ((vp = pairfind(request->config_items, PW_PROXY_TO_REALM))) {
 			REALM *realm;
 

@@ -868,7 +868,8 @@ static int server_pool_add(realm_config_t *rc,
 		}
 	}
 
-	if (num_home_servers == 0) {
+	/* LOCAL pools have no servers */
+	if (num_home_servers == 0 && strcmp(name2, "LOCAL")) {
 		cf_log_err(cf_sectiontoitem(cs),
 			   "No home servers defined in pool %s",
 			   name2);
@@ -1405,6 +1406,11 @@ static int add_pool_to_realm(realm_config_t *rc, CONF_SECTION *cs,
 	mypool.name = name;
 	mypool.server_type = server_type;
 
+	if (strcmp(name, "LOCAL") == 0) {
+		cf_log_err(cf_sectiontoitem(cs), "\"%s\" pool cannot be used with realms", name);
+		return 0;
+	}
+
 	pool = rbtree_finddata(home_pools_byname, &mypool);
 	if (!pool) {
 		CONF_SECTION *pool_cs;
@@ -1665,10 +1671,15 @@ static const FR_NAME_NUMBER home_server_types[] = {
 static int pool_peek_type(CONF_SECTION *config, CONF_SECTION *cs)
 {
 	int home;
-	const char *name, *type;
+	const char *name, *name2, *type;
 	CONF_PAIR *cp;
 	CONF_SECTION *server_cs;
 
+	name2 = cf_section_name2(cs);
+	if (name2 && strcmp(name2, "LOCAL") == 0) {
+		/* LOCAL Home server pool has no home_server */
+		return HOME_TYPE_AUTH;
+	}
 	cp = cf_pair_find(cs, "home_server");
 	if (!cp) {
 		cf_log_err(cf_sectiontoitem(cs), "Pool does not contain a \"home_server\" entry");
