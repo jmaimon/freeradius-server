@@ -795,6 +795,7 @@ delete_all:
 				VALUE_PAIR *vp;
 
 				vp = found->next;
+				i->operator = T_OP_EQ;
 				memcpy(found, i, sizeof(*found));
 				found->next = vp;
 				continue;
@@ -814,6 +815,7 @@ delete_all:
 			 */
 		default:
 		case T_OP_ADD:		/* += */
+			i->operator = T_OP_EQ;
 			break;
 		}
 

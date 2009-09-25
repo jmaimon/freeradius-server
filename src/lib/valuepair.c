@@ -542,6 +542,7 @@ void pairmove(VALUE_PAIR **to, VALUE_PAIR **from)
 					 *	here, so instead we over-write
 					 *	the vp that it's pointing to.
 					 */
+					i->operator = T_OP_EQ;
 					memcpy(found, i, sizeof(*found));
 					found->next = mynext;
 
@@ -563,6 +564,7 @@ void pairmove(VALUE_PAIR **to, VALUE_PAIR **from)
 			   *  if similar ones already exist.
 			   */
 			default:
+				i->operator = T_OP_EQ;
 			case T_OP_ADD: /* += */
 				break;
 			}
