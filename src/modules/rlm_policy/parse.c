@@ -144,7 +144,7 @@ static const char *policy_lex_string(const char *input,
 				     char *buffer, size_t buflen)
 {
 	rad_assert(input != NULL);
-	rad_assert(buffer != NULL);
+	rad_assert((!buffer && !buflen) || buffer != NULL);
 
 	switch (*input) {
 	case '\0':
