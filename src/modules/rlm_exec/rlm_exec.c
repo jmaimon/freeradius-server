@@ -263,6 +263,13 @@ static int exec_dispatch(void *instance, REQUEST *request)
 	VALUE_PAIR *answer;
 	rlm_exec_t *inst = (rlm_exec_t *) instance;
 
+	if (!inst || !request) {
+		radlof(L_ERR, "%s: %s() line: %d , a very bad thing happened",
+				__FILE__, __func__, __LINE__);
+		return RLM_MODULE_NOOP;
+	}
+		
+
 	/*
 	 *	We need a program to execute.
 	 */
@@ -276,8 +283,10 @@ static int exec_dispatch(void *instance, REQUEST *request)
 	 *	See if we're supposed to execute it now.
 	 */
 	if (!((inst->packet_code == 0) ||
-	      (request->packet->code == inst->packet_code) ||
-	      (request->reply->code == inst->packet_code) ||
+	      (request->packet && 
+	       request->packet->code == inst->packet_code) ||
+	      (request->reply && 
+	       request->reply->code == inst->packet_code) ||
 	      (request->proxy &&
 	       (request->proxy->code == inst->packet_code)) ||
 	      (request->proxy_reply &&
