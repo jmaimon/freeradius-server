@@ -964,12 +964,12 @@ static int evaluate_attr_list(policy_state_t *state, const policy_item_t *item)
 		break;
 
 	case POLICY_LEX_ASSIGN: /* 'union' */
-		pairmove(vps, head);
+		pairxlatmove(NULL, vps, &head);
 		pairfree(&head);
 		break;
 
 	case POLICY_LEX_BEFORE_HEAD_ASSIGN:
-		pairmove(&head, vps);
+		pairxlatmove(NULL, &head, vps);
 		pairfree(vps);
 		*vps = head;
 		break;
@@ -1026,14 +1026,14 @@ static int evaluate_attr_list(policy_state_t *state, const policy_item_t *item)
 					break;
 				case POLICY_LEX_BEFORE_WHERE_ASSIGN:
 					if (vpprev) {
-						pairmove(&lvp, &head);
+						pairxlatmove(NULL, &lvp, &head);
 						pairfree(&head);
 					}
 					else
 						*vps = lvp = head;
 					break;
 				case POLICY_LEX_AFTER_WHERE_ASSIGN:
-					pairmove(&lvp, &head);
+					pairxlatmove(NULL, &lvp, &head);
 					pairfree(&head);
 					break;
 				default:/*never reached*/
