@@ -39,6 +39,8 @@ static const FR_NAME_NUMBER tokens[] = {
 	{ ",",	T_COMMA,	},
 	{ "+=",	T_OP_ADD,	},
 	{ "-=",	T_OP_SUB,	},
+	{ "-*", T_OP_SUB_ALL,	},
+	{ "-~", T_OP_SUB_REG,	},
 	{ ":=",	T_OP_SET,	},
 	{ "=*", T_OP_CMP_TRUE,  },
 	{ "!*", T_OP_CMP_FALSE, },

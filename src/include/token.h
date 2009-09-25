@@ -38,6 +38,8 @@ typedef enum fr_token_t {
 
   T_OP_ADD,			/* += */
   T_OP_SUB,			/* -= */
+  T_OP_SUB_ALL,			/* -* */
+  T_OP_SUB_REG,			/* -~ */
   T_OP_SET,			/* := 		10 */
   T_OP_EQ,			/* = */
   T_OP_NE,			/* != */

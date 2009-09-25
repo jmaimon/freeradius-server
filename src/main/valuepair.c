@@ -293,7 +293,128 @@ int radius_find_compare(int attribute)
 	return FALSE;
 }
 
+/*
+ * 	Compare ONE attribute from a (potential) list.
+ * 	Return the first matching one.
+ */
 
+static VALUE_PAIR * paircmpmatchone(REQUEST *req, VALUE_PAIR *first, VALUE_PAIR *second)
+{
+	VALUE_PAIR *fnext = NULL;
+	VALUE_PAIR *snext = NULL;
+	int result = 0;
+	
+	for(; second; second = second->next){
+		for(; first; first = first->next){
+			if(first->attribute == second->attribute){
+				/* No matter what, compare only THESE items in chain */
+				fnext = first->next;
+				first->next = NULL;
+				snext = second->next;
+				second->next = NULL;
+				result = radius_compare_vps(req, first, second);
+				first->next = fnext;
+				second->next = snext;
+				
+				if(!result)
+					return first;
+			}
+		}	
+	}
+	return NULL;
+}	
+
+#ifdef HAVE_REGEX_H
+/*
+ * 	Regex Compare ONE attribute from a (potential) list.
+ * 	Return the first matching one.
+ */
+
+static VALUE_PAIR * pairregmatchone(REQUEST *req, VALUE_PAIR *first, VALUE_PAIR *second)
+{
+	int result = 0;
+	regex_t reg;
+	
+	for(; second; second = second->next){
+		for(; first; first = first->next){
+			if(first->attribute == second->attribute) {
+				if (second->operator == T_OP_REG_EQ ||
+				    second->operator == T_OP_REG_NE ||
+				    second->operator == T_OP_SUB_REG)
+				{	
+					regcomp(&reg, (char *)second->vp_strvalue,
+					REG_EXTENDED);
+					result = regexec(&reg, (char *)first->vp_strvalue,
+						0, NULL, 0);
+					regfree(&reg);
+				
+					if(!result)
+						return first;
+				}
+				if (first->operator == T_OP_REG_EQ ||
+				    first->operator == T_OP_REG_NE ||
+				    first->operator == T_OP_SUB_REG)
+				{
+
+					regcomp(&reg, (char *)first->vp_strvalue,
+						REG_EXTENDED);
+					result = regexec(&reg, (char *)second->vp_strvalue,
+							0, NULL, 0);
+					regfree(&reg);
+
+					if(!result)
+						return second;
+				}
+			}
+		}	
+	}
+	return NULL;
+}	
+#endif
+
+/*
+ * 	Deletes matching attributes.
+ */
+static void pairdeletematch(REQUEST *req,VALUE_PAIR **first,VALUE_PAIR *second)
+{
+	VALUE_PAIR *vp, *i;
+
+	while((vp = paircmpmatchone(req,*first,second))){
+		if(*first == vp) /* new head of chain */
+			*first = vp->next;
+		else
+			for(i = *first; i; i = i->next){
+				if(i->next == vp){ /* dis-own */
+					i->next = vp->next;
+					break;
+				}
+			}
+		pairbasicfree(vp);
+	}
+}
+
+#ifdef HAVE_REGEX_H
+/*
+ * 	deletes matching regex pairs
+*/
+static void pairdeleteregmatch(REQUEST *req,VALUE_PAIR **first,VALUE_PAIR *second)
+{
+	VALUE_PAIR *vp, *i;
+
+	while((vp = pairregmatchone(req,*first,second))){
+		if(*first == vp) /* new head of chain */
+			*first = vp->next;
+		else
+			for(i = *first; i; i = i->next){
+				if(i->next == vp){ /* dis-own */
+					i->next = vp->next;
+					break;
+				}
+			}
+		pairbasicfree(vp);
+	}
+}
+#endif
 /*
  *	See what attribute we want to compare with.
  */
@@ -558,6 +679,7 @@ void pairxlatmove(REQUEST *req, VALUE_PAIR **to, VALUE_PAIR **from)
 	 *	Point "tailto" to the end of the "to" list.
 	 */
 	tailto = to;
+	
 	for(i = *to; i; i = i->next) {
 		tailto = &i->next;
 	}
@@ -598,30 +720,57 @@ void pairxlatmove(REQUEST *req, VALUE_PAIR **to, VALUE_PAIR **from)
 		switch (i->operator) {
 
 			/*
-			 *  If a similar attribute is found,
-			 *  delete it.
+			 *  If a similar attribute are found,
+			 *  delete them.
 			 */
 		case T_OP_SUB:		/* -= */
 			if (found) {
-				if (!i->vp_strvalue[0] ||
-				    (strcmp((char *)found->vp_strvalue,
-					    (char *)i->vp_strvalue) == 0)){
-					pairdelete(to, found->attribute);
-
-					/*
-					 *	'tailto' may have been
-					 *	deleted...
-					 */
+ 				if (!i->vp_strvalue[0])
+					goto delete_all;
+				
+				pairdeletematch(req,to,i);
+				/*
+				 *	'tailto' may have been
+				 *	deleted...
+				 */
+				tailto = to;
+				for(j = *to; j; j = j->next) {
+ 					tailto = &j->next;
+				}
+			
+			}
+			tailfrom = i;
+			continue;
+			break;
+		case T_OP_SUB_ALL:	/* -* */
+			if (found) {
+delete_all:		
+				pairdelete(to, found->attribute);
 					tailto = to;
 					for(j = *to; j; j = j->next) {
 						tailto = &j->next;
 					}
-				}
 			}
 			tailfrom = i;
 			continue;
 			break;
 
+#ifdef HAVE_REGEX_H
+		case T_OP_SUB_REG:	/* -~ */
+			if (found) {
+				
+				pairdeleteregmatch(req,to,i);
+					
+				tailto = to;
+				for(j = *to; j; j = j->next) {
+ 					tailto = &j->next;
+				}
+
+			tailfrom = i;
+			continue;
+			break;
+		}
+#endif
 			/*
 			 *  Add it, if it's not already there.
 			 */

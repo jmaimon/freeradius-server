@@ -107,6 +107,25 @@ value to the list of configuration items.
 As a reply item, it has an identical meaning, but the attribute is
 added to the reply items.
 
+
+.TP 0.5i
+.B "Attribute -= Value"
+As a reply item it means remove matching items from the reply list.
+.br
+Not allowed as a check item.
+
+.TP 0.5i
+.B "Attribute -* Value"
+As a reply item it means remove all "Attribute" attributes items from the reply list.
+.br
+Not allowed as a check item.
+
+.TP 0.5i
+.B "Attribute -~ Value"
+As a reply item it means remove regex matching items from the reply list.
+.br
+Not allowed as a check item.
+
 .TP 0.5i
 .B "Attribute != Value"
 As a check item, matches if the given attribute is in the request, AND
