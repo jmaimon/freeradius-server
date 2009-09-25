@@ -510,7 +510,11 @@ int detail_recv(rad_listen_t *listener,
 		 *	FIXME: print an error for badly formatted attributes?
 		 */
 		if (sscanf(buffer, "%255s = %1023s", key, value) != 2) {
-			continue;
+			if (sscanf(buffer, "%255s := %1023s", key, value) != 2) {
+				if (sscanf(buffer, "%255s += %1023s", key, value) != 2) {
+					continue;
+				}
+			}
 		}
 
 		/*
