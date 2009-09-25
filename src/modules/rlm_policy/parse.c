@@ -120,6 +120,9 @@ const FR_NAME_NUMBER rlm_policy_tokens[] = {
 	{ "$.=", POLICY_LEX_AFTER_WHERE_EQUALS },
 	{ ".=", POLICY_LEX_CONCAT_EQUALS },
 	{ ":=", POLICY_LEX_SET_EQUALS },
+	{ "-=", POLICY_LEX_MINUS_EQUALS },
+	{ "-*", POLICY_LEX_MINUS_TRUE },
+	{ "-~", POLICY_LEX_RX_MINUS },
 	{ "double quoted string", POLICY_LEX_DOUBLE_QUOTED_STRING },
 	{ "single quoted string", POLICY_LEX_SINGLE_QUOTED_STRING },
 	{ "back quoted string", POLICY_LEX_BACK_QUOTED_STRING },
@@ -201,6 +204,16 @@ static const char *policy_lex_string(const char *input,
 		switch (input[1]) {
 		case '=':
 			*token = POLICY_LEX_MINUS_EQUALS;
+			input++;
+			break;
+			
+		case '*':
+			*token = POLICY_LEX_MINUS_TRUE;
+			input++;
+			break;
+
+		case '~':
+			*token = POLICY_LEX_RX_MINUS;
 			input++;
 			break;
 
@@ -1329,6 +1342,9 @@ static int parse_statement(policy_lex_file_t *lexer, policy_item_t **tail)
 	case POLICY_LEX_AND_EQUALS:
 	case POLICY_LEX_OR_EQUALS:
 	case POLICY_LEX_PLUS_EQUALS:
+	case POLICY_LEX_MINUS_EQUALS:
+	case POLICY_LEX_MINUS_TRUE:
+	case POLICY_LEX_RX_MINUS:
 		break;
 
 	default:

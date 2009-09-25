@@ -31,6 +31,7 @@ RCSIDH(rlm_policy_h, "$Id$")
 #include <freeradius-devel/modcall.h>
 #include <freeradius-devel/rad_assert.h>
 
+
 /*
  *	Internal lexer.
  */
@@ -68,6 +69,8 @@ typedef enum policy_lex_t {
 	POLICY_LEX_OR_EQUALS,	/* |= */
 	POLICY_LEX_PLUS_EQUALS,	/* += */
 	POLICY_LEX_MINUS_EQUALS, /* -= */
+	POLICY_LEX_MINUS_TRUE, /* -* */
+	POLICY_LEX_RX_MINUS, /* -~*/
 	POLICY_LEX_CONCAT_EQUALS, /* .= */
 	POLICY_LEX_VARIABLE,	/* %{foo} */
 	POLICY_LEX_FUNCTION,	/* Hmmm... */

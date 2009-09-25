@@ -855,6 +855,19 @@ static VALUE_PAIR *assign2vp(REQUEST *request,
 		operator = T_OP_ADD;
 		break;
 
+	case POLICY_LEX_MINUS_EQUALS:
+		operator = T_OP_SUB;
+		break;
+		
+	case POLICY_LEX_MINUS_TRUE:
+		operator = T_OP_SUB_ALL; 
+		break;
+		
+	case POLICY_LEX_RX_MINUS:
+		operator = T_OP_SUB_REG;
+		break;
+	
+
 	default:
 		fprintf(stderr, "Expected '=' for operator, not '%s' at line %d\n",
 			fr_int2str(rlm_policy_tokens,
@@ -946,7 +959,7 @@ static int evaluate_attr_list(policy_state_t *state, const policy_item_t *item)
 		break;
 
 	case POLICY_LEX_ASSIGN: /* 'union' */
-		pairmove(vps, &head);
+		pairmove(vps, head);
 		pairfree(&head);
 		break;
 
