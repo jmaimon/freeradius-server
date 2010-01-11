@@ -302,7 +302,8 @@ static int radius_do_cmp(REQUEST *request, int *presult,
 			 FR_TOKEN rt, const char *pright,
 			 int cflags, int modreturn)
 {
-	int result;
+	int attempts = 0;
+	int result = 0;
 	int lint, rint;
 	VALUE_PAIR *vp = NULL;
 #ifdef HAVE_REGEX_H
@@ -336,11 +337,46 @@ static int radius_do_cmp(REQUEST *request, int *presult,
 		if (radius_get_vp(request, pleft, &vp)) {
 			VALUE_PAIR myvp;
 
+restart_cmp:
+			if (attempts) {
+				DICT_ATTR *da;
+
+				switch (token) {
+#ifdef HAVE_REGEX_H
+				case T_OP_REG_NE:
+#endif
+				case T_OP_NE:
+					/*  Testing stops at the first negative match */
+					if (!result)
+						return TRUE;
+					break;
+				default:
+					/* For all other tests, testing stops at the first positive match */
+					if (result)
+						return TRUE;
+				}
+
+				/* pleft is trampled below, reinitialize it */
+				pleft = vp->name;
+				da = dict_attrbyname(pleft);
+				if (da)
+					vp = pairfind(vp->next, da->attr);
+			}
+
 			/*
 			 *	VP exists, and that's all we're looking for.
 			 */
 			if (token == T_OP_CMP_TRUE) {
 				*presult = (vp != NULL);
+				return TRUE;
+			}
+
+			/*
+			 *	VP exists and we were looking for non-existence
+			 */
+
+			if (token == T_OP_CMP_FALSE) {
+				*presult = (vp == NULL);
 				return TRUE;
 			}
 
@@ -361,12 +397,21 @@ static int radius_do_cmp(REQUEST *request, int *presult,
 					RDEBUG3("  Callback returns %d",
 						*presult);
 					pairfree(&check);
-					return TRUE;
+					if (vp && vp->next) {
+						result = *presult;
+						attempts++;
+						goto restart_cmp;
+					}
+					else
+						return TRUE;
 				}
 				
-				RDEBUG2("    (Attribute %s was not found)",
-				       pleft);
-				return FALSE;
+				RDEBUG2("    (Attribute %s was not found%s)",
+				       pleft, attempts ? " again":"");
+				if (!attempts)
+					return FALSE;
+				else
+					return TRUE;
 			}
 
 #ifdef HAVE_REGEX_H
@@ -392,7 +437,13 @@ static int radius_do_cmp(REQUEST *request, int *presult,
 			myvp.operator = token;
 			*presult = paircmp(&myvp, vp);
 			RDEBUG3("  paircmp -> %d", *presult);
-			return TRUE;
+			if (vp && vp->next) {
+				result = *presult;
+				attempts++;
+				goto restart_cmp;
+			}
+			else
+				return TRUE;
 		} /* else it's not a VP in a list */
 	}
 
@@ -406,7 +457,14 @@ static int radius_do_cmp(REQUEST *request, int *presult,
 	case T_OP_LT:
 		if (!all_digits(pright)) {
 			RDEBUG2("    (Right field is not a number at: %s)", pright);
-			return FALSE;
+			if (vp && vp->next) {
+				attempts++;
+				goto restart_cmp;
+			}
+			else if (attempts)
+				return TRUE;
+			else
+				return FALSE;
 		}
 		rint = atoi(pright);
 		if (!all_digits(pleft)) {
@@ -552,7 +610,12 @@ static int radius_do_cmp(REQUEST *request, int *presult,
 	}
 	
 	*presult = result;
-	return TRUE;
+	if (vp && vp->next) {
+		attempts++;
+		goto restart_cmp;
+	}
+	else
+		return TRUE;
 }
 
 
