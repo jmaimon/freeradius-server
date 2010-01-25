@@ -511,7 +511,6 @@ static int evaluate_condition(policy_state_t *state, const policy_item_t *item)
 #endif
 	char buffer[256];
 	char lhs_buffer[2048];
-	int next_vp = 0;
 
 	this = (const policy_condition_t *) item;
 
@@ -598,12 +597,6 @@ static int evaluate_condition(policy_state_t *state, const policy_item_t *item)
 				break;
 			}
 retry_next_vp:
-			if(vp && next_vp)
-			{
-				const DICT_ATTR *dattr = dict_attrbyname(vp->name);
-				vp = pairfind(vp, dattr->attr);
-			}
-  
 
 			/*
 			 *	FIXME: Move sanity checks to
@@ -760,10 +753,12 @@ retry_next_vp:
 		} /* switch over comparison operators */
 		break;		/* default from first switch over compare */
 	}
-	if (rcode == FALSE && vp && (vp = vp->next))
+	if (rcode == FALSE && vp && vp->next)
 	{
-		next_vp = 1;
-		goto retry_next_vp;
+		const DICT_ATTR *dattr = dict_attrbyname(vp->name);
+		vp = pairfind(vp->next, dattr->attr);
+		if (vp)
+			goto retry_next_vp;
 	}
 
 	if (this->sense) rcode = (rcode == FALSE); /* reverse sense of test */
